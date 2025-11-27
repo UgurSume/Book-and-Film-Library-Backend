@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SOSYAL_KUTUPHANE_PLATFORMU.Data;
 
@@ -11,9 +12,11 @@ using SOSYAL_KUTUPHANE_PLATFORMU.Data;
 namespace SOSYAL_KUTUPHANE_PLATFORMU.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251127124103_AddUserFollowerAndProfileFields")]
+    partial class AddUserFollowerAndProfileFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -61,66 +64,6 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Migrations
                     b.ToTable("Activities");
                 });
 
-            modelBuilder.Entity("SOSYAL_KUTUPHANE_PLATFORMU.Models.ActivityComment", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("ActivityId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Text")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ActivityId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("ActivityComments");
-                });
-
-            modelBuilder.Entity("SOSYAL_KUTUPHANE_PLATFORMU.Models.ActivityLike", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("ActivityId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("ActivityId", "UserId")
-                        .IsUnique();
-
-                    b.ToTable("ActivityLikes");
-                });
-
             modelBuilder.Entity("SOSYAL_KUTUPHANE_PLATFORMU.Models.Content", b =>
                 {
                     b.Property<int>("Id")
@@ -156,37 +99,6 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Contents");
-                });
-
-            modelBuilder.Entity("SOSYAL_KUTUPHANE_PLATFORMU.Models.PasswordResetToken", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsUsed")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Token")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("PasswordResetTokens");
                 });
 
             modelBuilder.Entity("SOSYAL_KUTUPHANE_PLATFORMU.Models.Rating", b =>
@@ -398,55 +310,6 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("SOSYAL_KUTUPHANE_PLATFORMU.Models.ActivityComment", b =>
-                {
-                    b.HasOne("SOSYAL_KUTUPHANE_PLATFORMU.Models.Activity", "Activity")
-                        .WithMany("Comments")
-                        .HasForeignKey("ActivityId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("SOSYAL_KUTUPHANE_PLATFORMU.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Activity");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("SOSYAL_KUTUPHANE_PLATFORMU.Models.ActivityLike", b =>
-                {
-                    b.HasOne("SOSYAL_KUTUPHANE_PLATFORMU.Models.Activity", "Activity")
-                        .WithMany("Likes")
-                        .HasForeignKey("ActivityId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("SOSYAL_KUTUPHANE_PLATFORMU.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Activity");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("SOSYAL_KUTUPHANE_PLATFORMU.Models.PasswordResetToken", b =>
-                {
-                    b.HasOne("SOSYAL_KUTUPHANE_PLATFORMU.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("SOSYAL_KUTUPHANE_PLATFORMU.Models.Rating", b =>
                 {
                     b.HasOne("SOSYAL_KUTUPHANE_PLATFORMU.Models.Content", "Content")
@@ -532,13 +395,6 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Migrations
                     b.Navigation("Content");
 
                     b.Navigation("UserList");
-                });
-
-            modelBuilder.Entity("SOSYAL_KUTUPHANE_PLATFORMU.Models.Activity", b =>
-                {
-                    b.Navigation("Comments");
-
-                    b.Navigation("Likes");
                 });
 
             modelBuilder.Entity("SOSYAL_KUTUPHANE_PLATFORMU.Models.Content", b =>

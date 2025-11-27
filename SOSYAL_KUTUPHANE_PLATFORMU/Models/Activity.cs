@@ -23,5 +23,9 @@
 
         public User User { get; set; } = null!;
         public Content Content { get; set; } = null!;
+        
+        // Etkileşimler
+        public ICollection<ActivityLike> Likes { get; set; } = new List<ActivityLike>();
+        public ICollection<ActivityComment> Comments { get; set; } = new List<ActivityComment>();
     }
 }
