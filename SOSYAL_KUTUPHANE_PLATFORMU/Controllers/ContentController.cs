@@ -18,7 +18,9 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Controllers
             _context = context;
         }
 
-        // 1) İçeriği veritabanında garantiye al
+        /// <summary>
+        /// Iceriği veritabaninda garantiye al
+        /// </summary>
         // POST: api/content/ensure
         [HttpPost("ensure")]
         [Authorize]
@@ -27,7 +29,7 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Controllers
             if (!ModelState.IsValid)
             {
                 return BadRequest(ApiResponse<Content>.FailResponse(
-                    "Geçersiz veri",
+                    "Gecersiz veri",
                     ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()));
             }
 
@@ -36,7 +38,7 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Controllers
 
             if (existing != null)
             {
-                return Ok(ApiResponse<Content>.SuccessResponse(existing, "İçerik zaten mevcut."));
+                return Ok(ApiResponse<Content>.SuccessResponse(existing, "Icerik zaten mevcut."));
             }
 
             var content = new Content
@@ -52,10 +54,12 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Controllers
             _context.Contents.Add(content);
             await _context.SaveChangesAsync();
 
-            return Ok(ApiResponse<Content>.SuccessResponse(content, "İçerik başarıyla eklendi."));
+            return Ok(ApiResponse<Content>.SuccessResponse(content, "Icerik basariyla eklendi."));
         }
 
-        // 2) Puan verme (varsa güncelle, yoksa ekle)
+        /// <summary>
+        /// Puan verme (varsa guncelle, yoksa ekle)
+        /// </summary>
         // POST: api/content/rate
         [HttpPost("rate")]
         [Authorize]
@@ -64,7 +68,7 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Controllers
             if (!ModelState.IsValid)
             {
                 return BadRequest(ApiResponse<object>.FailResponse(
-                    "Geçersiz veri",
+                    "Gecersiz veri",
                     ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()));
             }
 
@@ -72,7 +76,7 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Controllers
 
             var content = await _context.Contents.FindAsync(model.ContentId);
             if (content == null)
-                return NotFound(ApiResponse<object>.FailResponse("İçerik bulunamadı."));
+                return NotFound(ApiResponse<object>.FailResponse("Icerik bulunamadi."));
 
             var rating = await _context.Ratings
                 .FirstOrDefaultAsync(r => r.UserId == userId && r.ContentId == model.ContentId);
@@ -120,11 +124,13 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Controllers
                 ratingId = rating.Id,
                 score = rating.Score,
                 isUpdate = !isNewRating
-            }, isNewRating ? "Puan başarıyla kaydedildi." : "Puan güncellendi."));
+            }, isNewRating ? "Puan basariyla kaydedildi." : "Puan guncellendi."));
         }
 
 
-        // 3) Yorum ekleme
+        /// <summary>
+        /// Yorum ekleme
+        /// </summary>
         // POST: api/content/review
         [HttpPost("review")]
     [Authorize]
@@ -132,42 +138,40 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Controllers
   {
     if (!ModelState.IsValid)
      {
-   return BadRequest(ApiResponse<object>.FailResponse(
-      "Geçersiz veri",
-     ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()));
+return BadRequest(ApiResponse<object>.FailResponse(
+"Gecersiz veri",
+   ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()));
    }
 
-   var userId = GetCurrentUserId();
+var userId = GetCurrentUserId();
 
-   var content = await _context.Contents.FindAsync(model.ContentId);
+var content = await _context.Contents.FindAsync(model.ContentId);
       if (content == null)
-     return NotFound(ApiResponse<object>.FailResponse("İçerik bulunamadı."));
+     return NotFound(ApiResponse<object>.FailResponse("Icerik bulunamadi."));
 
-    // Kullanıcı daha önce yorum yapmış mı?
-  var existingReview = await _context.Reviews
+    var existingReview = await _context.Reviews
 .FirstOrDefaultAsync(r => r.UserId == userId && r.ContentId == model.ContentId);
 
 if (existingReview != null)
   {
     return BadRequest(ApiResponse<object>.FailResponse(
-       "Bu içerik hakkında zaten yorum yaptınız. Yorumunuzu düzenleyebilirsiniz."));
-            }
+ "Bu icerik hakkinda zaten yorum yaptiniz. Yorumunuzu duzenleyebilirsiniz."));
+ }
 
 var review = new Review
-      {
-       UserId = userId,
-    ContentId = model.ContentId,
-   Text = model.Text,
+  {
+  UserId = userId,
+          ContentId = model.ContentId,
+       Text = model.Text,
     CreatedAt = DateTime.UtcNow
        };
 
   _context.Reviews.Add(review);
-  await _context.SaveChangesAsync();
+     await _context.SaveChangesAsync();
 
- // Aktivite kaydı oluştur
-     var activity = new Activity
-         {
-            UserId = userId,
+        var activity = new Activity
+   {
+       UserId = userId,
    ContentId = model.ContentId,
       ActivityType = "review",
   Text = model.Text,
@@ -177,63 +181,59 @@ var review = new Review
       _context.Activities.Add(activity);
         await _context.SaveChangesAsync();
 
-   return Ok(ApiResponse<object>.SuccessResponse(new
-      {
-     reviewId = review.Id
-     }, "Yorum başarıyla kaydedildi."));
+ return Ok(ApiResponse<object>.SuccessResponse(new
+  {
+  reviewId = review.Id
+     }, "Yorum basariyla kaydedildi."));
       }
 
-        // 4) İçerik detay + ortalama puan + yorumlar + kullanıcı durumu
-        // GET: api/content/{id}
+        /// <summary>
+        /// Icerik detay + ortalama puan + yorumlar + kullanici durumu
+        /// </summary>
         [HttpGet("{id:int}")]
         public async Task<ActionResult<ApiResponse<ContentDetailsDto>>> GetContentDetails(int id)
-        {
-      var content = await _context.Contents
-                .Include(c => c.Ratings)
-          .Include(c => c.Reviews)
+ {
+    var content = await _context.Contents
+         .Include(c => c.Ratings)
+ .Include(c => c.Reviews)
          .ThenInclude(r => r.User)
-    .FirstOrDefaultAsync(c => c.Id == id);
+  .FirstOrDefaultAsync(c => c.Id == id);
 
-     if (content == null)
-     return NotFound(ApiResponse<ContentDetailsDto>.FailResponse("İçerik bulunamadı."));
+ if (content == null)
+   return NotFound(ApiResponse<ContentDetailsDto>.FailResponse("Icerik bulunamadi."));
 
-            double avgRating = 0;
+         double avgRating = 0;
       int ratingsCount = content.Ratings.Count;
-   int reviewsCount = content.Reviews.Count;
+int reviewsCount = content.Reviews.Count;
 
-            if (ratingsCount > 0)
+   if (ratingsCount > 0)
      {
-            avgRating = content.Ratings.Average(r => r.Score);
-            }
+avgRating = content.Ratings.Average(r => r.Score);
+     }
 
-            // Kaç kullanıcı listeye eklemiş
-     int listAddCount = await _context.UserListItems
+   int listAddCount = await _context.UserListItems
     .Where(uli => uli.ContentId == id)
              .CountAsync();
 
-         // Giriş yapmış kullanıcının durumu (opsiyonel)
-            int? currentUserRating = null;
+      int? currentUserRating = null;
          bool hasUserReviewed = false;
         UserLibraryStatusDto? userLibraryStatus = null;
 
  if (User.Identity?.IsAuthenticated == true)
-            {
-                var userId = GetCurrentUserId();
+    {
+  var userId = GetCurrentUserId();
 
-    // Kullanıcının puanı
     var userRating = await _context.Ratings
            .FirstOrDefaultAsync(r => r.UserId == userId && r.ContentId == id);
-     currentUserRating = userRating?.Score;
+   currentUserRating = userRating?.Score;
 
-     // Kullanıcının yorumu var mı?
           hasUserReviewed = await _context.Reviews
          .AnyAsync(r => r.UserId == userId && r.ContentId == id);
 
-   // Kullanıcının listelerindeki durumu
-                var userLists = await _context.UserLists
+     var userLists = await _context.UserLists
   .Where(ul => ul.UserId == userId)
    .Include(ul => ul.Items)
-           .ToListAsync();
+     .ToListAsync();
 
      var userListsWithContent = userLists
  .Where(ul => ul.Items.Any(item => item.ContentId == id))
@@ -241,51 +241,53 @@ var review = new Review
 
     userLibraryStatus = new UserLibraryStatusDto
        {
-   IsInWatchedList = userListsWithContent.Any(ul => ul.Name == "İzlediklerim" && ul.IsDefault),
-         IsInToWatchList = userListsWithContent.Any(ul => ul.Name == "İzlenecekler" && ul.IsDefault),
-       IsInReadList = userListsWithContent.Any(ul => ul.Name == "Okuduklarım" && ul.IsDefault),
+   IsInWatchedList = userListsWithContent.Any(ul => ul.Name == "Izlediklerim" && ul.IsDefault),
+    IsInToWatchList = userListsWithContent.Any(ul => ul.Name == "Izlenecekler" && ul.IsDefault),
+  IsInReadList = userListsWithContent.Any(ul => ul.Name == "Okuduklarim" && ul.IsDefault),
          IsInToReadList = userListsWithContent.Any(ul => ul.Name == "Okunacaklar" && ul.IsDefault),
          CustomLists = userListsWithContent
   .Where(ul => !ul.IsDefault)
        .Select(ul => ul.Name)
-        .ToList()
+ .ToList()
      };
-            }
+}
 
  var dto = new ContentDetailsDto
             {
-      Id = content.Id,
-       ExternalId = content.ExternalId,
-       Type = content.Type,
+    Id = content.Id,
+   ExternalId = content.ExternalId,
+  Type = content.Type,
             Title = content.Title,
       Description = content.Description,
-           Year = content.Year,
+     Year = content.Year,
        CoverUrl = content.CoverUrl,
       AverageRating = Math.Round(avgRating, 2),
     RatingsCount = ratingsCount,
-                ReviewsCount = reviewsCount,
+  ReviewsCount = reviewsCount,
      ListAddCount = listAddCount,
       CurrentUserRating = currentUserRating,
-           HasUserReviewed = hasUserReviewed,
+        HasUserReviewed = hasUserReviewed,
           UserLibraryStatus = userLibraryStatus,
-    Reviews = content.Reviews
+  Reviews = content.Reviews
       .OrderByDescending(r => r.CreatedAt)
           .Select(r => new ReviewDto
   {
      Id = r.Id,
-              UserId = r.UserId,
-       UserName = r.User.UserName,
+   UserId = r.UserId,
+     UserName = r.User.UserName,
          UserAvatarUrl = r.User.AvatarUrl,
       Text = r.Text,
          CreatedAt = r.CreatedAt
-            })
+       })
   .ToList()
-    };
+  };
 
-    return Ok(ApiResponse<ContentDetailsDto>.SuccessResponse(dto, "İçerik detayları başarıyla getirildi."));
-        }
+    return Ok(ApiResponse<ContentDetailsDto>.SuccessResponse(dto, "Icerik detaylari basariyla getirildi."));
+   }
 
-        // 5) Yorum düzenleme (sadece kendi yorumunu düzenleyebilir)
+        /// <summary>
+        /// Yorum duzenleme (sadece kendi yorumunu duzenleyebilir)
+        /// </summary>
         // PUT: api/content/review/{id}
         [HttpPut("review/{id:int}")]
         [Authorize]
@@ -294,7 +296,7 @@ var review = new Review
             if (!ModelState.IsValid)
             {
                 return BadRequest(ApiResponse.FailResponse(
-                    "Geçersiz veri",
+                    "Gecersiz veri",
                     ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()));
             }
 
@@ -305,14 +307,14 @@ var review = new Review
                 .FirstOrDefaultAsync(r => r.Id == id);
 
             if (review == null)
-                return NotFound(ApiResponse.FailResponse("Yorum bulunamadı."));
+                return NotFound(ApiResponse.FailResponse("Yorum bulunamadi."));
 
             // Sadece kendi yorumunu düzenleyebilir
             if (review.UserId != userId)
                 return Forbid();
 
             review.Text = model.Text;
-          review.UpdatedAt = DateTime.UtcNow;
+        review.UpdatedAt = DateTime.UtcNow;
 
      _context.Reviews.Update(review);
    await _context.SaveChangesAsync();
@@ -326,34 +328,34 @@ var review = new Review
    if (activity != null)
        {
    activity.Text = model.Text;
-        _context.Activities.Update(activity);
+_context.Activities.Update(activity);
     await _context.SaveChangesAsync();
    }
 
- return Ok(ApiResponse.SuccessResponse("Yorum başarıyla güncellendi."));
+ return Ok(ApiResponse.SuccessResponse("Yorum basariyla guncellendi."));
         }
 
-        // 6) Yorum silme (sadece kendi yorumunu silebilir)
+        /// <summary>
+        /// Yorum silme (sadece kendi yorumunu silebilir)
+        /// </summary>
         // DELETE: api/content/review/{id}
    [HttpDelete("review/{id:int}")]
   [Authorize]
-        public async Task<ActionResult<ApiResponse>> DeleteReview(int id)
+      public async Task<ActionResult<ApiResponse>> DeleteReview(int id)
       {
-     var userId = GetCurrentUserId();
+    var userId = GetCurrentUserId();
 
 var review = await _context.Reviews
    .FirstOrDefaultAsync(r => r.Id == id);
 
 if (review == null)
-       return NotFound(ApiResponse.FailResponse("Yorum bulunamadı."));
+       return NotFound(ApiResponse.FailResponse("Yorum bulunamadi."));
 
-   // Sadece kendi yorumunu silebilir
        if (review.UserId != userId)
    return Forbid();
 
       _context.Reviews.Remove(review);
 
-// İlgili aktiviteyi de sil
   var activity = await _context.Activities
     .FirstOrDefaultAsync(a => a.UserId == userId &&
      a.ContentId == review.ContentId &&
@@ -366,11 +368,12 @@ if (activity != null)
 
    await _context.SaveChangesAsync();
 
-return Ok(ApiResponse.SuccessResponse("Yorum başarıyla silindi."));
-        }
+return Ok(ApiResponse.SuccessResponse("Yorum basariyla silindi."));
+    }
 
-        // 7) Kullanıcının bir içeriğe verdiği puanı getir
-    // GET: api/content/{contentId}/my-rating
+   /// <summary>
+      /// Kullanicinin bir iceriğe verdigi puani getir
+        /// </summary>
     [HttpGet("{contentId:int}/my-rating")]
       [Authorize]
   public async Task<ActionResult<ApiResponse<object>>> GetMyRating(int contentId)
@@ -381,37 +384,38 @@ return Ok(ApiResponse.SuccessResponse("Yorum başarıyla silindi."));
  .FirstOrDefaultAsync(r => r.UserId == userId && r.ContentId == contentId);
 
  if (rating == null)
-         return NotFound(ApiResponse<object>.FailResponse("Bu içeriğe henüz puan vermediniz."));
+         return NotFound(ApiResponse<object>.FailResponse("Bu iceriğe henuz puan vermediniz."));
 
      return Ok(ApiResponse<object>.SuccessResponse(new
         {
      score = rating.Score,
    createdAt = rating.CreatedAt,
       updatedAt = rating.UpdatedAt
-   }, "Puanınız başarıyla getirildi."));
-        }
+   }, "Puaniniz basariyla getirildi."));
+   }
 
-  // 8) Kullanıcının bir içerik hakkındaki yorumunu getir
-    // GET: api/content/{contentId}/my-review
+  /// <summary>
+        /// Kullanicinin bir icerik hakkindaki yorumunu getir
+  /// </summary>
         [HttpGet("{contentId:int}/my-review")]
         [Authorize]
   public async Task<ActionResult<ApiResponse<object>>> GetMyReview(int contentId)
-        {
+  {
   var userId = GetCurrentUserId();
 
   var review = await _context.Reviews
    .FirstOrDefaultAsync(r => r.UserId == userId && r.ContentId == contentId);
 
      if (review == null)
-       return NotFound(ApiResponse<object>.FailResponse("Bu içerik hakkında henüz yorum yapmadınız."));
+       return NotFound(ApiResponse<object>.FailResponse("Bu icerik hakkinda henuz yorum yapmadiniz."));
 
-    return Ok(ApiResponse<object>.SuccessResponse(new
+ return Ok(ApiResponse<object>.SuccessResponse(new
  {
       id = review.Id,
 text = review.Text,
     createdAt = review.CreatedAt,
     updatedAt = review.UpdatedAt
-   }, "Yorumunuz başarıyla getirildi."));
+   }, "Yorumunuz basariyla getirildi."));
  }
     }
 }

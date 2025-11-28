@@ -22,11 +22,11 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Controllers
         // 1) Kullanıcının tüm listelerini getir
         // GET: api/library/lists/{userId}
         [HttpGet("lists/{userId:int}")]
-        public async Task<ActionResult<List<UserListDto>>> GetUserLists(int userId)
+        public async Task<ActionResult<ApiResponse<List<UserListDto>>>> GetUserLists(int userId)
         {
             var userExists = await _context.Users.AnyAsync(u => u.Id == userId);
             if (!userExists)
-                return NotFound("Kullanıcı bulunamadı.");
+                return NotFound(ApiResponse<List<UserListDto>>.FailResponse("Kullanıcı bulunamadı."));
 
             var lists = await _context.UserLists
                 .Where(l => l.UserId == userId)
@@ -50,12 +50,12 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Controllers
                 }).ToList()
             }).ToList();
 
-            return Ok(result);
+            return Ok(ApiResponse<List<UserListDto>>.SuccessResponse(result, "Listeler başarıyla getirildi."));
         }
 
         // GET: api/library/my-lists (Kendi listelerini getir)
         [HttpGet("my-lists")]
-        public async Task<ActionResult<List<UserListDto>>> GetMyLists()
+        public async Task<ActionResult<ApiResponse<List<UserListDto>>>> GetMyLists()
         {
             var userId = GetCurrentUserId();
 
@@ -81,32 +81,39 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Controllers
                 }).ToList()
             }).ToList();
 
-            return Ok(result);
+            return Ok(ApiResponse<List<UserListDto>>.SuccessResponse(result, "Listeleriniz başarıyla getirildi."));
         }
 
         // 2) Listeye içerik ekle
         // POST: api/library/add
         [HttpPost("add")]
-        public async Task<IActionResult> AddToList([FromBody] AddToListRequest model)
+        public async Task<ActionResult<ApiResponse>> AddToList([FromBody] AddToListRequest model)
         {
-            var userId = GetCurrentUserId(); // Token'dan al
+            if (!ModelState.IsValid)
+{
+      return BadRequest(ApiResponse.FailResponse(
+     "Geçersiz veri",
+       ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()));
+   }
+
+            var userId = GetCurrentUserId();
 
             var list = await _context.UserLists
                 .FirstOrDefaultAsync(l => l.Id == model.ListId && l.UserId == userId);
 
             if (list == null)
-                return NotFound("Liste bulunamadı veya bu kullanıcıya ait değil.");
+                return NotFound(ApiResponse.FailResponse("Liste bulunamadı veya bu kullanıcıya ait değil."));
 
             var content = await _context.Contents.FindAsync(model.ContentId);
             if (content == null)
-                return NotFound("İçerik bulunamadı.");
+                return NotFound(ApiResponse.FailResponse("İçerik bulunamadı."));
 
             // Aynı içerik önceden eklenmiş mi?
             var exists = await _context.UserListItems
                 .AnyAsync(i => i.UserListId == model.ListId && i.ContentId == model.ContentId);
 
             if (exists)
-                return BadRequest("Bu içerik zaten listede mevcut.");
+                return BadRequest(ApiResponse.FailResponse("Bu içerik zaten listede mevcut."));
 
             var item = new UserListItem
             {
@@ -130,32 +137,39 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Controllers
             _context.Activities.Add(activity);
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "İçerik listeye eklendi." });
+            return Ok(ApiResponse.SuccessResponse("İçerik başarıyla listeye eklendi."));
         }
 
         // 3) Listeden içerik sil
         // DELETE: api/library/remove
         [HttpDelete("remove")]
-        public async Task<IActionResult> RemoveFromList([FromBody] RemoveFromListRequest model)
+        public async Task<ActionResult<ApiResponse>> RemoveFromList([FromBody] RemoveFromListRequest model)
         {
-            var userId = GetCurrentUserId(); // Token'dan al
+            if (!ModelState.IsValid)
+ {
+      return BadRequest(ApiResponse.FailResponse(
+        "Geçersiz veri",
+     ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()));
+ }
+
+            var userId = GetCurrentUserId();
 
             var list = await _context.UserLists
                 .FirstOrDefaultAsync(l => l.Id == model.ListId && l.UserId == userId);
 
             if (list == null)
-                return NotFound("Liste bulunamadı veya bu kullanıcıya ait değil.");
+                return NotFound(ApiResponse.FailResponse("Liste bulunamadı veya bu kullanıcıya ait değil."));
 
             var item = await _context.UserListItems
                 .FirstOrDefaultAsync(i => i.UserListId == model.ListId && i.ContentId == model.ContentId);
 
             if (item == null)
-                return NotFound("Bu içerik listede bulunamadı.");
+                return NotFound(ApiResponse.FailResponse("Bu içerik listede bulunamadı."));
 
             _context.UserListItems.Remove(item);
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "İçerik listeden kaldırıldı." });
+            return Ok(ApiResponse.SuccessResponse("İçerik listeden kaldırıldı."));
         }
 
         // YENİ: Özel liste oluştur

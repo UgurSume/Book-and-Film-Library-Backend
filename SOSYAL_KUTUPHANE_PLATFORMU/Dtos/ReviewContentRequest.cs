@@ -4,11 +4,11 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Dtos
 {
     public class ReviewContentRequest
     {
-        [Required(ErrorMessage = "İçerik ID zorunludur")]
+        [Required(ErrorMessage = "Icerik ID zorunludur")]
         public int ContentId { get; set; }
 
         [Required(ErrorMessage = "Yorum metni zorunludur")]
-        [StringLength(2000, MinimumLength = 10, ErrorMessage = "Yorum 10-2000 karakter arasında olmalıdır")]
+        [StringLength(2000, MinimumLength = 10, ErrorMessage = "Yorum 10-2000 karakter arasinda olmalidir")]
         public string Text { get; set; } = null!;
     }
 }

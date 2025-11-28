@@ -8,14 +8,14 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Dtos
         /// Liste adý zorunludur
         /// Liste adý 1-100 karakter arasýnda olmalýdýr
         /// </summary>
-        [Required(ErrorMessage = "Liste adý zorunludur")]
-        [StringLength(100, MinimumLength = 1, ErrorMessage = "Liste adý 1-100 karakter arasýnda olmalýdýr")]
+        [Required(ErrorMessage = "Liste adi zorunludur")]
+        [StringLength(100, MinimumLength = 1, ErrorMessage = "Liste adi 1-100 karakter arasinda olmalidir")]
         public string Name { get; set; } = null!;
 
         /// <summary>
         /// Açýklama maksimum 500 karakter olabilir
         /// </summary>
-        [StringLength(500, ErrorMessage = "Açýklama maksimum 500 karakter olabilir")]
+        [StringLength(500, ErrorMessage = "Aciklama maksimum 500 karakter olabilir")]
         public string? Description { get; set; }
 
         /// <summary>
