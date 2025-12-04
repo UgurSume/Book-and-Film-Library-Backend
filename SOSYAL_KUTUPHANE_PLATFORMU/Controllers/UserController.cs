@@ -26,35 +26,35 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Controllers
      [HttpGet("profile/{userId:int}")]
   public async Task<ActionResult<ApiResponse<UserProfileDto>>> GetUserProfile(int userId)
    {
-       var currentUserId = GetCurrentUserId();
+     var currentUserId = GetCurrentUserId();
 
-      var user = await _context.Users.FindAsync(userId);
-      if (user == null)
+   var user = await _context.Users.FindAsync(userId);
+    if (user == null)
    return NotFound(ApiResponse<UserProfileDto>.FailResponse("Kullanýcý bulunamadý."));
 
       // Kullanýcý istatistikleri
       var totalRatings = await _context.Ratings.CountAsync(r => r.UserId == userId);
     var totalReviews = await _context.Reviews.CountAsync(r => r.UserId == userId);
       var totalLists = await _context.UserLists.CountAsync(ul => ul.UserId == userId && !ul.IsDefault);
-      var totalActivities = await _context.Activities.CountAsync(a => a.UserId == userId);
+   var totalActivities = await _context.Activities.CountAsync(a => a.UserId == userId);
 
-      // Giriþ yapan kullanýcý bu profili takip ediyor mu?
+   // Giriþ yapan kullanýcý bu profili takip ediyor mu?
  var isFollowing = await _context.UserFollowers
  .AnyAsync(uf => uf.FollowerId == currentUserId && uf.FollowingId == userId);
 
     var dto = new UserProfileDto
   {
-            Id = user.Id,
+     Id = user.Id,
     UserName = user.UserName,
-      Email = user.Email,
+   Email = user.Email,
        AvatarUrl = user.AvatarUrl,
       Biography = user.Biography,
  FollowersCount = user.FollowersCount,
-            FollowingCount = user.FollowingCount,
-            CreatedAt = user.CreatedAt,
+FollowingCount = user.FollowingCount,
+       CreatedAt = user.CreatedAt,
   IsFollowing = isFollowing,
           IsOwnProfile = currentUserId == userId,
-      // Ýstatistikler
+  // Ýstatistikler
             TotalRatings = totalRatings,
      TotalReviews = totalReviews,
   TotalLists = totalLists,
@@ -65,7 +65,7 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Controllers
         }
 
    /// <summary>
-        /// Kendi profilini getir
+     /// Kendi profilini getir
   /// GET: api/user/my-profile
    /// </summary>
       [HttpGet("my-profile")]
@@ -75,11 +75,52 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Controllers
   return await GetUserProfile(userId);
    }
 
+        /// <summary>
+        /// Kullanýcý ara
+    /// GET: api/user/search?query=ahmet
+        /// </summary>
+      [HttpGet("search")]
+        [Authorize]
+        public async Task<ActionResult<ApiResponse<List<FollowUserDto>>>> SearchUsers([FromQuery] string query)
+  {
+      if (string.IsNullOrWhiteSpace(query))
+      return BadRequest(ApiResponse<List<FollowUserDto>>.FailResponse("Arama sorgusu boþ olamaz."));
+
+            var currentUserId = GetCurrentUserId();
+
+            // Kullanýcýlarý ara
+       var users = await _context.Users
+      .Where(u => u.UserName.Contains(query) && u.Id != currentUserId) // Kendini hariç tut
+   .Take(20)
+       .ToListAsync();
+
+            // Giriþ yapan kullanýcýnýn takip ettiði kiþileri al
+      var currentUserFollowingIds = await _context.UserFollowers
+           .Where(uf => uf.FollowerId == currentUserId)
+     .Select(uf => uf.FollowingId)
+    .ToListAsync();
+
+         var result = users.Select(u => new FollowUserDto
+         {
+     Id = u.Id,
+      UserName = u.UserName,
+          AvatarUrl = u.AvatarUrl,
+     Biography = u.Biography,
+  FollowersCount = u.FollowersCount,
+     FollowingCount = u.FollowingCount,
+          IsFollowing = currentUserFollowingIds.Contains(u.Id)
+      }).ToList();
+
+    return Ok(ApiResponse<List<FollowUserDto>>.SuccessResponse(
+        result,
+  $"{result.Count} kullanýcý bulundu."));
+        }
+
     /// <summary>
         /// Profil güncelleme
  /// PUT: api/user/update-profile
-        /// </summary>
-     [HttpPut("update-profile")]
+      /// </summary>
+  [HttpPut("update-profile")]
         public async Task<ActionResult<ApiResponse>> UpdateProfile([FromBody] UpdateProfileRequest model)
         {
  if (!ModelState.IsValid)
