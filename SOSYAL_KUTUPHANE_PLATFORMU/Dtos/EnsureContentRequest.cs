@@ -4,22 +4,16 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Dtos
 {
     public class EnsureContentRequest
     {
-        [Required(ErrorMessage = "External ID zorunludur")]
-        public string ExternalId { get; set; } = null!;
-
-        [Required(ErrorMessage = "Icerik turu zorunludur")]
-        [RegularExpression("^(movie|book)$", ErrorMessage = "Icerik turu 'movie' veya 'book' olmalidir")]
-        public string Type { get; set; } = null!;
-
-        [Required(ErrorMessage = "Baslik zorunludur")]
-        [StringLength(500, ErrorMessage = "Baslik maksimum 500 karakter olabilir")]
-        public string Title { get; set; } = null!;
+        // Validation'ları kaldırıyoruz, controller'da manuel kontrol edeceğiz
+        public string? ExternalId { get; set; }
+        public string? Type { get; set; }
+        public string? Title { get; set; }
 
         // Frontend uyumluluk için ek alanlar
         [StringLength(2000, ErrorMessage = "Aciklama maksimum 2000 karakter olabilir")]
         public string? Description { get; set; }
 
-        public string? Overview { get; set; }  // TMDb overview alanı için alternatif
+        public string? Overview { get; set; } // TMDb overview alanı için alternatif
         public string? PosterPath { get; set; }  // TMDb poster_path için
         public string? ReleaseDate { get; set; }  // TMDb release_date için
 

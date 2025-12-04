@@ -24,104 +24,131 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Controllers
         [Authorize]
         public async Task<ActionResult<ApiResponse<object>>> EnsureContent([FromBody] EnsureContentRequest model)
         {
-    try
-            {
-       _logger.LogInformation($"EnsureContent called with ExternalId: {model?.ExternalId}, Type: {model?.Type}, Title: {model?.Title}");
+            try
+          {
+  _logger.LogInformation($"EnsureContent called - ExternalId: {model?.ExternalId}, Type: {model?.Type}, Title: {model?.Title}");
 
-    if (!ModelState.IsValid)
-   {
-      var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
-  _logger.LogWarning($"EnsureContent validation failed: {string.Join(", ", errors)}");
-              return BadRequest(ApiResponse<object>.FailResponse("Gecersiz veri", errors));
-        }
-
-        if (string.IsNullOrWhiteSpace(model.ExternalId))
-      {
-       _logger.LogWarning("ExternalId is null or empty");
-       return BadRequest(ApiResponse<object>.FailResponse("ExternalId zorunludur."));
-        }
-
-                if (string.IsNullOrWhiteSpace(model.Type))
-                {
-          _logger.LogWarning("Type is null or empty");
-      return BadRequest(ApiResponse<object>.FailResponse("Type zorunludur."));
+      // Manuel validation (Required attribute'larý kaldýrdýk)
+    if (model == null)
+       {
+            _logger.LogWarning("EnsureContent: model is null");
+    return BadRequest(ApiResponse<object>.FailResponse("Request body bos olamaz."));
      }
 
-          if (string.IsNullOrWhiteSpace(model.Title))
+      if (string.IsNullOrWhiteSpace(model.ExternalId))
+ {
+         _logger.LogWarning("EnsureContent: ExternalId is null or empty");
+             return BadRequest(ApiResponse<object>.FailResponse("ExternalId zorunludur."));
+     }
+
+     if (string.IsNullOrWhiteSpace(model.Type))
+         {
+              _logger.LogWarning("EnsureContent: Type is null or empty");
+          return BadRequest(ApiResponse<object>.FailResponse("Type zorunludur."));
+     }
+
+    // Type validasyonu (movie veya book olmalý)
+   if (model.Type != "movie" && model.Type != "book")
           {
-  _logger.LogWarning("Title is null or empty");
-          return BadRequest(ApiResponse<object>.FailResponse("Title zorunludur."));
+         _logger.LogWarning($"EnsureContent: Invalid type '{model.Type}'");
+   return BadRequest(ApiResponse<object>.FailResponse("Type 'movie' veya 'book' olmalidir."));
+         }
+
+      if (string.IsNullOrWhiteSpace(model.Title))
+    {
+          _logger.LogWarning("EnsureContent: Title is null or empty");
+      return BadRequest(ApiResponse<object>.FailResponse("Title zorunludur."));
     }
 
-      // Ayný ExternalId + Type kombinasyonu varsa mevcut kaydý dön
-     var existing = await _context.Contents.FirstOrDefaultAsync(c => c.ExternalId == model.ExternalId && c.Type == model.Type);
-       if (existing != null)
-    {
-      _logger.LogInformation($"Content already exists with ID: {existing.Id}, ExternalId: {model.ExternalId}");
-          return Ok(ApiResponse<object>.SuccessResponse(
-     new { contentId = existing.Id, message = "Icerik zaten mevcut." },
-                 "Icerik zaten mevcut."));
-    }
+    // Ayný ExternalId + Type kombinasyonu varsa mevcut kaydý dön
+      var existing = await _context.Contents
+            .FirstOrDefaultAsync(c => c.ExternalId == model.ExternalId && c.Type == model.Type);
 
-     // Description ve Overview alanlarýný birleþtir (hangisi doluysa onu kullan)
-  string? description = !string.IsNullOrWhiteSpace(model.Description) 
-          ? model.Description 
-  : model.Overview;
+             if (existing != null)
+             {
+             _logger.LogInformation($"Content already exists - ID: {existing.Id}, ExternalId: {model.ExternalId}");
+   return Ok(ApiResponse<object>.SuccessResponse(
+    new { contentId = existing.Id },
+       "Icerik zaten mevcut."));
+   }
 
-                // CoverUrl ve PosterPath alanlarýný birleþtir
-     string? coverUrl = !string.IsNullOrWhiteSpace(model.CoverUrl) 
-       ? model.CoverUrl 
-        : model.PosterPath;
+    // Description ve Overview alanlarýný birleþtir
+string? description = !string.IsNullOrWhiteSpace(model.Description)
+      ? model.Description
+      : (!string.IsNullOrWhiteSpace(model.Overview) ? model.Overview : null);
 
-         // ReleaseDate'den Year çýkar (eðer Year boþsa)
-                int? year = model.Year;
-          if (!year.HasValue && !string.IsNullOrWhiteSpace(model.ReleaseDate))
-    {
-  if (model.ReleaseDate.Length >= 4 && int.TryParse(model.ReleaseDate.Substring(0, 4), out int parsedYear))
+          // CoverUrl ve PosterPath alanlarýný birleþtir
+     string? coverUrl = !string.IsNullOrWhiteSpace(model.CoverUrl)
+  ? model.CoverUrl
+            : (!string.IsNullOrWhiteSpace(model.PosterPath) ? model.PosterPath : null);
+
+            // ReleaseDate'den Year çýkar (eðer Year boþsa)
+      int? year = model.Year;
+ if (!year.HasValue && !string.IsNullOrWhiteSpace(model.ReleaseDate))
    {
+   try
+      {
+               if (model.ReleaseDate.Length >= 4 && int.TryParse(model.ReleaseDate.Substring(0, 4), out int parsedYear))
+          {
             year = parsedYear;
-   }
-                }
+  }
+           }
+         catch (Exception ex)
+             {
+            _logger.LogWarning(ex, $"Error parsing year from ReleaseDate: {model.ReleaseDate}");
+      }
+         }
 
-      var content = new Content
+  // Content oluþtur
+            var content = new Content
     {
-  ExternalId = model.ExternalId,
-            Type = model.Type,
-      Title = model.Title ?? "Isimsiz",
-         Description = description ?? "",
-         Year = year,
-    CoverUrl = coverUrl,
-  // Detaylý alanlar (PROJE GEREKSINIMLERI)
-          Director = model.Director,
-           Cast = model.Cast != null && model.Cast.Any()
+            ExternalId = model.ExternalId.Trim(),
+        Type = model.Type.ToLower().Trim(),
+         Title = model.Title.Trim(),
+          Description = description?.Trim(),
+     Year = year,
+       CoverUrl = coverUrl?.Trim(),
+       // Detaylý alanlar
+       Director = model.Director?.Trim(),
+          Cast = model.Cast != null && model.Cast.Any()
  ? System.Text.Json.JsonSerializer.Serialize(model.Cast)
-           : null,
-      Genres = model.Genres != null && model.Genres.Any()
-            ? System.Text.Json.JsonSerializer.Serialize(model.Genres)
-    : null,
-      Authors = model.Authors != null && model.Authors.Any()
-       ? System.Text.Json.JsonSerializer.Serialize(model.Authors)
-      : null,
-     PageCount = model.PageCount,
-            CreatedAt = DateTime.UtcNow
-    };
+        : null,
+          Genres = model.Genres != null && model.Genres.Any()
+         ? System.Text.Json.JsonSerializer.Serialize(model.Genres)
+        : null,
+   Authors = model.Authors != null && model.Authors.Any()
+           ? System.Text.Json.JsonSerializer.Serialize(model.Authors)
+        : null,
+         PageCount = model.PageCount,
+   CreatedAt = DateTime.UtcNow
+ };
 
-     _context.Contents.Add(content);
-          await _context.SaveChangesAsync();
+         _context.Contents.Add(content);
+    await _context.SaveChangesAsync();
 
-  _logger.LogInformation($"New content created successfully with ID: {content.Id}, ExternalId: {model.ExternalId}, Title: {model.Title}");
+    _logger.LogInformation($"Content created successfully - ID: {content.Id}, ExternalId: {model.ExternalId}, Title: {model.Title}");
 
-     return Ok(ApiResponse<object>.SuccessResponse(
-  new { contentId = content.Id },
-       "Icerik basariyla eklendi."));
-   }
+        return Ok(ApiResponse<object>.SuccessResponse(
+    new { contentId = content.Id },
+   "Icerik basariyla eklendi."));
+            }
             catch (Exception ex)
-        {
-    _logger.LogError(ex, $"EnsureContent error - ExternalId: {model?.ExternalId}, Type: {model?.Type}, Message: {ex.Message}, StackTrace: {ex.StackTrace}");
-           return StatusCode(500, ApiResponse<object>.FailResponse(
-           "Icerik eklenirken bir hata olustu.",
-               new List<string> { ex.Message, ex.InnerException?.Message ?? "" }.Where(s => !string.IsNullOrEmpty(s)).ToList()));
-    }
+            {
+        _logger.LogError(ex, $"EnsureContent FATAL ERROR - ExternalId: {model?.ExternalId}, Type: {model?.Type}, Title: {model?.Title}");
+       _logger.LogError($"Exception Message: {ex.Message}");
+  _logger.LogError($"Stack Trace: {ex.StackTrace}");
+       _logger.LogError($"Inner Exception: {ex.InnerException?.Message}");
+
+                var errorMessages = new List<string> { ex.Message };
+if (ex.InnerException != null)
+                {
+          errorMessages.Add($"Inner: {ex.InnerException.Message}");
+          }
+
+        return StatusCode(500, ApiResponse<object>.FailResponse(
+            "Icerik eklenirken bir hata olustu.",
+             errorMessages));
+ }
         }
 
   [HttpPost("rate")]
