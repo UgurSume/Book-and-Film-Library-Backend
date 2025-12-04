@@ -37,7 +37,7 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Migrations
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.NoAction); // Cascade yerine NoAction
                 });
 
             migrationBuilder.CreateTable(
@@ -64,7 +64,7 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Migrations
                         column: x => x.UserId,
                         principalTable: "Users",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.NoAction); // Cascade yerine NoAction
                 });
 
             migrationBuilder.CreateIndex(
