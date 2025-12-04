@@ -48,6 +48,9 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Services
             {
                 foreach (var movie in data.Results)
                 {
+                    // PROJE METNI GEREKSINIMI: Detayli bilgi cek
+                    var detailedMovie = await GetMovieDetailsAsync(movie.Id);
+
                     int? year = null;
                     if (!string.IsNullOrEmpty(movie.ReleaseDate) && movie.ReleaseDate.Length >= 4)
                     {
@@ -68,12 +71,59 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Services
                         Title = movie.Title ?? movie.OriginalTitle ?? "İsimsiz Film",
                         Description = movie.Overview,
                         Year = year,
-                        CoverUrl = coverUrl
+                        CoverUrl = coverUrl,
+                        Director = detailedMovie?.Director,
+                        Cast = detailedMovie?.Cast,
+                        Genres = detailedMovie?.Genres
                     });
                 }
             }
 
             return results;
+        }
+
+        /// <summary>
+        /// Film detaylarini cek (yonetmen, oyuncular, turler)
+        /// </summary>
+        private async Task<MovieDetails?> GetMovieDetailsAsync(int movieId)
+        {
+            try
+            {
+                // 1. Film detaylari (turler icin)
+                var detailUrl = $"{_baseUrl}/movie/{movieId}?api_key={_apiKey}&language=tr-TR";
+                var detailResponse = await _httpClient.GetAsync(detailUrl);
+                detailResponse.EnsureSuccessStatusCode();
+                var detailJson = await detailResponse.Content.ReadAsStringAsync();
+                var detailData = JsonSerializer.Deserialize<TmdbMovieDetail>(detailJson, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                // 2. Film kadrosu (yonetmen ve oyuncular icin)
+                var creditsUrl = $"{_baseUrl}/movie/{movieId}/credits?api_key={_apiKey}&language=tr-TR";
+                var creditsResponse = await _httpClient.GetAsync(creditsUrl);
+                creditsResponse.EnsureSuccessStatusCode();
+                var creditsJson = await creditsResponse.Content.ReadAsStringAsync();
+                var creditsData = JsonSerializer.Deserialize<TmdbCredits>(creditsJson, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                var director = creditsData?.Crew?.FirstOrDefault(c => c.Job == "Director")?.Name;
+                var cast = creditsData?.Cast?.Take(10).Select(c => c.Name).ToList() ?? new List<string>();
+                var genres = detailData?.Genres?.Select(g => g.Name).ToList() ?? new List<string>();
+
+                return new MovieDetails
+                {
+                    Director = director,
+                    Cast = cast,
+                    Genres = genres
+                };
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         // TMDb response modelleri
@@ -102,6 +152,55 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Services
 
             [JsonPropertyName("poster_path")]
             public string? PosterPath { get; set; }
+        }
+
+        private class TmdbMovieDetail
+        {
+            [JsonPropertyName("genres")]
+            public List<TmdbGenre>? Genres { get; set; }
+        }
+
+        private class TmdbGenre
+        {
+            [JsonPropertyName("id")]
+            public int Id { get; set; }
+
+            [JsonPropertyName("name")]
+            public string Name { get; set; } = null!;
+        }
+
+        private class TmdbCredits
+        {
+            [JsonPropertyName("cast")]
+            public List<TmdbCastMember>? Cast { get; set; }
+
+            [JsonPropertyName("crew")]
+            public List<TmdbCrewMember>? Crew { get; set; }
+        }
+
+        private class TmdbCastMember
+        {
+            [JsonPropertyName("name")]
+            public string Name { get; set; } = null!;
+
+            [JsonPropertyName("character")]
+            public string? Character { get; set; }
+        }
+
+        private class TmdbCrewMember
+        {
+            [JsonPropertyName("name")]
+            public string Name { get; set; } = null!;
+
+            [JsonPropertyName("job")]
+            public string Job { get; set; } = null!;
+        }
+
+        private class MovieDetails
+        {
+            public string? Director { get; set; }
+            public List<string> Cast { get; set; } = new();
+            public List<string> Genres { get; set; } = new();
         }
     }
 }

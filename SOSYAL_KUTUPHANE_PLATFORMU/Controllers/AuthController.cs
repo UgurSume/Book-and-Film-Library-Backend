@@ -5,6 +5,7 @@ using SOSYAL_KUTUPHANE_PLATFORMU.Dtos;
 using SOSYAL_KUTUPHANE_PLATFORMU.Helpers;
 using SOSYAL_KUTUPHANE_PLATFORMU.Models;
 using SOSYAL_KUTUPHANE_PLATFORMU.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SOSYAL_KUTUPHANE_PLATFORMU.Controllers
 {
@@ -107,105 +108,135 @@ if (!ModelState.IsValid)
         }
 
         /// <summary>
+        /// Giris yapmis kullanicinin bilgilerini getir (Token'dan)
+        /// </summary>
+        [HttpGet("me")]
+        [Authorize]
+        public async Task<IActionResult> GetCurrentUser()
+        {
+         var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+          
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+   return Unauthorized(ApiResponse.FailResponse("Gecersiz token."));
+
+      var user = await _context.Users.FindAsync(userId);
+     
+            if (user == null)
+    return NotFound(ApiResponse.FailResponse("Kullanici bulunamadi."));
+
+            return Ok(ApiResponse<object>.SuccessResponse(new
+            {
+    userId = user.Id,
+         userName = user.UserName,
+          email = user.Email,
+          avatarUrl = user.AvatarUrl,
+           biography = user.Biography,
+                followersCount = user.FollowersCount,
+followingCount = user.FollowingCount,
+                createdAt = user.CreatedAt
+ }, "Kullanici bilgileri basariyla getirildi."));
+   }
+
+    /// <summary>
         /// Sifremi unuttum
         /// </summary>
-        [HttpPost("sifremi-unuttum")]
-     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest model)
- {
-     if (!ModelState.IsValid)
-         return BadRequest(ApiResponse.FailResponse("Gecersiz veri", ModelState.Values
-    .SelectMany(v => v.Errors)
-          .Select(e => e.ErrorMessage)
-             .ToList()));
+     [HttpPost("sifremi-unuttum")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest model)
+      {
+            if (!ModelState.IsValid)
+                return BadRequest(ApiResponse.FailResponse("Gecersiz veri", ModelState.Values
+        .SelectMany(v => v.Errors)
+.Select(e => e.ErrorMessage)
+      .ToList()));
 
     var user = await _context.Users
-    .FirstOrDefaultAsync(u => u.Email == model.Email);
+   .FirstOrDefaultAsync(u => u.Email == model.Email);
 
-         if (user == null)
-       {
-          return Ok(ApiResponse.SuccessResponse("Eger bu email kayitliysa, sifre sifirlama linki gonderildi."));
-          }
+            if (user == null)
+            {
+     return Ok(ApiResponse.SuccessResponse("Eger bu email kayitliysa, sifre sifirlama linki gonderildi."));
+     }
 
-          var oldTokens = await _context.PasswordResetTokens
-                .Where(t => t.UserId == user.Id && !t.IsUsed && t.ExpiresAt > DateTime.UtcNow)
-    .ToListAsync();
+     var oldTokens = await _context.PasswordResetTokens
+        .Where(t => t.UserId == user.Id && !t.IsUsed && t.ExpiresAt > DateTime.UtcNow)
+        .ToListAsync();
 
             _context.PasswordResetTokens.RemoveRange(oldTokens);
 
-     var resetToken = new PasswordResetToken
-   {
-      UserId = user.Id,
-                Token = Guid.NewGuid().ToString(),
-         ExpiresAt = DateTime.UtcNow.AddHours(1),
-           CreatedAt = DateTime.UtcNow
-     };
+            var resetToken = new PasswordResetToken
+            {
+UserId = user.Id,
+     Token = Guid.NewGuid().ToString(),
+                ExpiresAt = DateTime.UtcNow.AddHours(1),
+       CreatedAt = DateTime.UtcNow
+            };
 
-            _context.PasswordResetTokens.Add(resetToken);
-       await _context.SaveChangesAsync();
+     _context.PasswordResetTokens.Add(resetToken);
+      await _context.SaveChangesAsync();
 
-  try
-         {
-     await _emailService.SendPasswordResetEmailAsync(user.Email, resetToken.Token, user.UserName);
+        try
+            {
+                await _emailService.SendPasswordResetEmailAsync(user.Email, resetToken.Token, user.UserName);
             }
-            catch (Exception ex)
-        {
-       Console.WriteLine($"Email gonderilirken hata: {ex.Message}");
-            }
+catch (Exception ex)
+          {
+    Console.WriteLine($"Email gonderilirken hata: {ex.Message}");
+    }
 
-            return Ok(ApiResponse.SuccessResponse("Eger bu email kayitliysa, sifre sifirlama linki gonderildi."));
-     }
+   return Ok(ApiResponse.SuccessResponse("Eger bu email kayitliysa, sifre sifirlama linki gonderildi."));
+ }
 
-   /// <summary>
+        /// <summary>
         /// Sifre sifirla
-   /// </summary>
-   [HttpPost("sifre-sifirla")]
+        /// </summary>
+        [HttpPost("sifre-sifirla")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest model)
-        {
-   if (!ModelState.IsValid)
-    return BadRequest(ApiResponse.FailResponse("Gecersiz veri", ModelState.Values
- .SelectMany(v => v.Errors)
-      .Select(e => e.ErrorMessage)
-       .ToList()));
+     {
+      if (!ModelState.IsValid)
+         return BadRequest(ApiResponse.FailResponse("Gecersiz veri", ModelState.Values
+      .SelectMany(v => v.Errors)
+            .Select(e => e.ErrorMessage)
+     .ToList()));
 
-            var resetToken = await _context.PasswordResetTokens
-  .Include(t => t.User)
+       var resetToken = await _context.PasswordResetTokens
+       .Include(t => t.User)
      .FirstOrDefaultAsync(t => t.Token == model.Token);
 
-            if (resetToken == null)
-     return BadRequest(ApiResponse.FailResponse("Gecersiz veya suresi dolmus token."));
+    if (resetToken == null)
+ return BadRequest(ApiResponse.FailResponse("Gecersiz veya suresi dolmus token."));
 
-  if (resetToken.IsUsed)
-                return BadRequest(ApiResponse.FailResponse("Bu token zaten kullanilmis."));
+            if (resetToken.IsUsed)
+    return BadRequest(ApiResponse.FailResponse("Bu token zaten kullanilmis."));
 
- if (resetToken.ExpiresAt < DateTime.UtcNow)
-         return BadRequest(ApiResponse.FailResponse("Token'in suresi dolmus. Lutfen yeni bir sifre sifirlama talebi olusturun."));
+            if (resetToken.ExpiresAt < DateTime.UtcNow)
+        return BadRequest(ApiResponse.FailResponse("Token'in suresi dolmus. Lutfen yeni bir sifre sifirlama talebi olusturun."));
 
-  resetToken.User.PasswordHash = PasswordHelper.HashPassword(model.NewPassword);
-     resetToken.IsUsed = true;
+resetToken.User.PasswordHash = PasswordHelper.HashPassword(model.NewPassword);
+            resetToken.IsUsed = true;
 
-      _context.Users.Update(resetToken.User);
+     _context.Users.Update(resetToken.User);
             _context.PasswordResetTokens.Update(resetToken);
-  await _context.SaveChangesAsync();
+       await _context.SaveChangesAsync();
 
-  return Ok(ApiResponse.SuccessResponse("Sifreniz basariyla guncellendi. Artik giris yapabilirsiniz."));
+    return Ok(ApiResponse.SuccessResponse("Sifreniz basariyla guncellendi. Artik giris yapabilirsiniz."));
         }
 
         /// <summary>
-      /// Sifre sifirlama token dogrulama
+        /// Sifre sifirlama token dogrulama
         /// </summary>
-        [HttpGet("token-dogrula/{token}")]
-        public async Task<IActionResult> ValidateResetToken(string token)
+  [HttpGet("token-dogrula/{token}")]
+public async Task<IActionResult> ValidateResetToken(string token)
         {
-  var resetToken = await _context.PasswordResetTokens
-      .FirstOrDefaultAsync(t => t.Token == token);
+     var resetToken = await _context.PasswordResetTokens
+ .FirstOrDefaultAsync(t => t.Token == token);
 
             if (resetToken == null || resetToken.IsUsed || resetToken.ExpiresAt < DateTime.UtcNow)
             {
-      return BadRequest(ApiResponse<object>.FailResponse("Token gecersiz veya suresi dolmus.", 
-  new List<string> { "isValid: false" }));
-     }
+                return BadRequest(ApiResponse<object>.FailResponse("Token gecersiz veya suresi dolmus.", 
+   new List<string> { "isValid: false" }));
+       }
 
-            return Ok(ApiResponse<object>.SuccessResponse(new { isValid = true }, "Token gecerli."));
+      return Ok(ApiResponse<object>.SuccessResponse(new { isValid = true }, "Token gecerli."));
         }
     }
 }

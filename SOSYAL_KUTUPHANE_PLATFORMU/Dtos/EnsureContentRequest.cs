@@ -15,13 +15,27 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Dtos
         [StringLength(500, ErrorMessage = "Baslik maksimum 500 karakter olabilir")]
         public string Title { get; set; } = null!;
 
+        // Frontend uyumluluk için ek alanlar
         [StringLength(2000, ErrorMessage = "Aciklama maksimum 2000 karakter olabilir")]
         public string? Description { get; set; }
 
-        [Range(1800, 2100, ErrorMessage = "Gecerli bir yil giriniz")]
+        public string? Overview { get; set; }  // TMDb overview alanı için alternatif
+        public string? PosterPath { get; set; }  // TMDb poster_path için
+        public string? ReleaseDate { get; set; }  // TMDb release_date için
+
         public int? Year { get; set; }
 
-        [Url(ErrorMessage = "Gecerli bir URL giriniz")]
         public string? CoverUrl { get; set; }
+
+        // *** PROJE GEREKSINIMLERI: Detaylı Alanlar ***
+
+        // Film için
+        public string? Director { get; set; }       // Yönetmen
+        public List<string>? Cast { get; set; }     // Oyuncular
+        public List<string>? Genres { get; set; }   // Türler
+
+        // Kitap için
+        public List<string>? Authors { get; set; }  // Yazarlar
+        public int? PageCount { get; set; }         // Sayfa sayısı
     }
 }

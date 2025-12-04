@@ -53,6 +53,10 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Services
 
                     string? coverUrl = info.ImageLinks?.Thumbnail;
 
+                    // PROJE METNI GEREKSINIMI: Yazarlar ve sayfa sayisi
+                    var authors = info.Authors ?? new List<string>();
+                    var pageCount = info.PageCount;
+
                     results.Add(new SearchResultItemDto
                     {
                         ExternalId = item.Id ?? "",
@@ -60,7 +64,9 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Services
                         Title = info.Title ?? "İsimsiz Kitap",
                         Description = info.Description,
                         Year = year,
-                        CoverUrl = coverUrl
+                        CoverUrl = coverUrl,
+                        Authors = authors,
+                        PageCount = pageCount
                     });
                 }
             }
@@ -97,6 +103,13 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Services
 
             [JsonPropertyName("imageLinks")]
             public ImageLinks? ImageLinks { get; set; }
+
+            // PROJE METNI GEREKSINIMLERI
+            [JsonPropertyName("authors")]
+            public List<string>? Authors { get; set; }
+
+            [JsonPropertyName("pageCount")]
+            public int? PageCount { get; set; }
         }
 
         private class ImageLinks

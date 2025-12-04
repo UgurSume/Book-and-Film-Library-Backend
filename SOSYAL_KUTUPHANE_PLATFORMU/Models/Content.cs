@@ -19,13 +19,21 @@
         // Poster / kapak görseli URL'si
         public string? CoverUrl { get; set; }
 
+        // *** PROJE METNI GEREKSINIMLERI ***
+
+        // Film için ek alanlar
+        public string? Director { get; set; }  // Yönetmen
+        public string? Cast { get; set; }  // Oyuncular (JSON array string olarak)
+        public string? Genres { get; set; }    // Türler (JSON array string olarak: ["Action", "Drama"])
+        
+        // Kitap için ek alanlar
+        public string? Authors { get; set; }   // Yazarlar (JSON array string olarak)
+        public int? PageCount { get; set; }    // Sayfa sayısı
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigasyonlar – DB şemasını değiştirmez, o yüzden yeni migration gerekmiyor
         public ICollection<Rating> Ratings { get; set; } = new List<Rating>();
         public ICollection<Review> Reviews { get; set; } = new List<Review>();
-
-
-
     }
 }

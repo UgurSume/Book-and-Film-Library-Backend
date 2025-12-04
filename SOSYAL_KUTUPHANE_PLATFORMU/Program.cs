@@ -40,19 +40,22 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// CORS Policy
+// CORS Policy - GÜÇLENDIRILMIÞ
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy.WithOrigins(
-      "http://localhost:3000",  // React
-            "http://localhost:5173",  // Vite
-      "http://localhost:4200"   // Angular
+      "http://localhost:3000",
+      "http://localhost:3001",  // Frontend port
+      "http://localhost:5173",
+      "http://localhost:4200",
+      "http://localhost:8080"
     )
         .AllowAnyMethod()
         .AllowAnyHeader()
-        .AllowCredentials();
+        .AllowCredentials()
+        .WithExposedHeaders("*"); // Tüm header'larý expose et
     });
 });
 
@@ -61,6 +64,13 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddHttpClient<ITmdbService, TmdbService>();
 builder.Services.AddHttpClient<IGoogleBooksService, GoogleBooksService>();
+
+// Routing - Case Insensitive
+builder.Services.AddRouting(options =>
+{
+    options.LowercaseUrls = true; // URL'leri küçük harfe çevir
+    options.LowercaseQueryStrings = false; // Query string'leri olduðu gibi býrak
+});
 
 builder.Services.AddControllers();
 
@@ -115,7 +125,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// CORS (Authentication'dan önce)
+// CORS - ÖNEMLÝ: Authentication'dan ÖNCE olmalý
 app.UseCors("AllowFrontend");
 
 app.UseAuthentication();

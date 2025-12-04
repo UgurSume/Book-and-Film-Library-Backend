@@ -13,6 +13,17 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Dtos
         public int? Year { get; set; }
         public string? CoverUrl { get; set; }
 
+        // *** PROJE GEREKSINIMLERI: Detaylı Alanlar ***
+      
+        // Film için
+        public string? Director { get; set; }
+        public List<string>? Cast { get; set; }
+        public List<string>? Genres { get; set; }
+        
+        // Kitap için
+        public List<string>? Authors { get; set; }
+        public int? PageCount { get; set; }
+
         // Platform istatistikleri
         public double AverageRating { get; set; }
         public int RatingsCount { get; set; }
