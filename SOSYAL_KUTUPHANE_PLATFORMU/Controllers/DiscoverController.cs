@@ -224,7 +224,7 @@ pagedResult, "Popüler içerikler baþarýyla getirildi."));
     /// POST: api/discover/filter
    /// </summary>
         [HttpPost("filter")]
-        public async Task<ActionResult<ApiResponse<PagedResult<ContentSummaryDto>>>> FilterContents(
+    public async Task<ActionResult<ApiResponse<PagedResult<ContentSummaryDto>>>> FilterContents(
      [FromBody] ContentFilterRequest filter)
         {
       if (!ModelState.IsValid)
@@ -235,91 +235,89 @@ pagedResult, "Popüler içerikler baþarýyla getirildi."));
       }
 
          var query = _context.Contents
-        .Include(c => c.Ratings)
+ .Include(c => c.Ratings)
     .Include(c => c.Reviews)
     .AsQueryable();
 
     // Tip filtresi
       if (!string.IsNullOrEmpty(filter.Type))
-       {
+     {
        query = query.Where(c => c.Type == filter.Type);
-    }
+}
 
-            // Yýl filtresi
-        if (filter.Year.HasValue)
-            {
-       query = query.Where(c => c.Year == filter.Year.Value);
+     // Yýl filtresi
+        if (filter.MinYear.HasValue)
+   {
+        query = query.Where(c => c.Year >= filter.MinYear.Value);
          }
-       else if (filter.YearFrom.HasValue || filter.YearTo.HasValue)
-      {
-          if (filter.YearFrom.HasValue)
-          query = query.Where(c => c.Year >= filter.YearFrom.Value);
-        
-  if (filter.YearTo.HasValue)
-       query = query.Where(c => c.Year <= filter.YearTo.Value);
-            }
+     if (filter.MaxYear.HasValue)
+            {
+  query = query.Where(c => c.Year <= filter.MaxYear.Value);
+       }
 
 var contents = await query
-                .Select(c => new
+    .Select(c => new
         {
-         Content = c,
+    Content = c,
   AvgRating = c.Ratings.Any() ? c.Ratings.Average(r => (double)r.Score) : 0,
         RatingsCount = c.Ratings.Count,
        ReviewsCount = c.Reviews.Count,
        ListAddCount = _context.UserListItems.Count(i => i.ContentId == c.Id)
-        })
+    })
   .ToListAsync();
 
-            // Puan filtresi (in-memory)
+    // Puan filtresi (in-memory)
         if (filter.MinRating.HasValue)
             {
         contents = contents.Where(x => x.AvgRating >= filter.MinRating.Value).ToList();
      }
 
             if (filter.MaxRating.HasValue)
-            {
+    {
       contents = contents.Where(x => x.AvgRating <= filter.MaxRating.Value).ToList();
         }
 
           // Sýralama
  contents = filter.SortBy?.ToLower() switch
-            {
-  "rating_asc" => contents.OrderBy(x => x.AvgRating).ToList(),
-            "rating_desc" => contents.OrderByDescending(x => x.AvgRating).ToList(),
-                "popular" => contents.OrderByDescending(x => x.RatingsCount + x.ReviewsCount + x.ListAddCount).ToList(),
-   "recent" => contents.OrderByDescending(x => x.Content.CreatedAt).ToList(),
+          {
+       "title" => filter.SortDescending ? contents.OrderByDescending(x => x.Content.Title).ToList() : contents.OrderBy(x => x.Content.Title).ToList(),
+       "year" => filter.SortDescending ? contents.OrderByDescending(x => x.Content.Year).ToList() : contents.OrderBy(x => x.Content.Year).ToList(),
+            "rating" => filter.SortDescending ? contents.OrderByDescending(x => x.AvgRating).ToList() : contents.OrderBy(x => x.AvgRating).ToList(),
+   "created" => filter.SortDescending ? contents.OrderByDescending(x => x.Content.CreatedAt).ToList() : contents.OrderBy(x => x.Content.CreatedAt).ToList(),
        _ => contents.OrderByDescending(x => x.AvgRating).ToList()
             };
 
     var totalCount = contents.Count;
 
     // Sayfalama
-      var pagedContents = contents
-                .Skip(filter.Skip)
-      .Take(filter.Take)
+   var pageSize = filter.PageSize > 0 && filter.PageSize <= 50 ? filter.PageSize : 20;
+        var pageNumber = filter.PageNumber > 0 ? filter.PageNumber : 1;
+
+        var pagedContents = contents
+    .Skip((pageNumber - 1) * pageSize)
+    .Take(pageSize)
   .ToList();
 
-       var result = pagedContents.Select(x => new ContentSummaryDto
+  var result = pagedContents.Select(x => new ContentSummaryDto
   {
-                Id = x.Content.Id,
+Id = x.Content.Id,
    ExternalId = x.Content.ExternalId,
      Type = x.Content.Type,
   Title = x.Content.Title,
   Description = x.Content.Description,
         Year = x.Content.Year,
-       CoverUrl = x.Content.CoverUrl,
+   CoverUrl = x.Content.CoverUrl,
    AverageRating = Math.Round(x.AvgRating, 2),
     RatingsCount = x.RatingsCount,
      ReviewsCount = x.ReviewsCount,
      ListAddCount = x.ListAddCount,
-            CreatedAt = x.Content.CreatedAt
+  CreatedAt = x.Content.CreatedAt
 }).ToList();
 
-  var pageNumber = (filter.Skip / filter.Take) + 1;
-   var pagedResult = new PagedResult<ContentSummaryDto>(result, totalCount, pageNumber, filter.Take);
+      var pagedResult = new PagedResult<ContentSummaryDto>(result, totalCount, pageNumber, pageSize);
 
     return Ok(ApiResponse<PagedResult<ContentSummaryDto>>.SuccessResponse(
-       pagedResult, "Filtrelenmiþ içerikler baþarýyla getirildi."));
+    pagedResult, "Filtrelenmiþ içerikler baþarýyla getirildi."));
         }
 
 /// <summary>

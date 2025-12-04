@@ -11,6 +11,26 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Dtos
         public string? Type { get; set; }
 
         /// <summary>
+        /// Baþlýk veya açýklama aramasý
+        /// </summary>
+        public string? SearchTerm { get; set; }
+
+        /// <summary>
+        /// Tür filtresi (örn: ["Action", "Drama"])
+        /// </summary>
+        public List<string>? Genres { get; set; }
+
+        /// <summary>
+        /// Yönetmen filtresi (filmler için)
+        /// </summary>
+        public string? Director { get; set; }
+
+        /// <summary>
+        /// Yazar filtresi (kitaplar için)
+        /// </summary>
+        public string? Author { get; set; }
+
+        /// <summary>
         /// Minimum puan (1-10 arasý)
         /// </summary>
         [Range(1, 10, ErrorMessage = "Minimum puan 1-10 arasinda olmalidir")]
@@ -23,40 +43,37 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Dtos
         public double? MaxRating { get; set; }
 
         /// <summary>
-        /// Yýl filtreleme
+        /// Minimum yýl
         /// </summary>
         [Range(1800, 2100, ErrorMessage = "Gecerli bir yil giriniz")]
-        public int? Year { get; set; }
+        public int? MinYear { get; set; }
 
         /// <summary>
-        /// Baþlangýç yýlý
+        /// Maksimum yýl
         /// </summary>
         [Range(1800, 2100, ErrorMessage = "Gecerli bir yil giriniz")]
-        public int? YearFrom { get; set; }
+        public int? MaxYear { get; set; }
 
         /// <summary>
-        /// Bitiþ yýlý
+        /// Sýralama alaný: "title", "year", "rating", "created"
         /// </summary>
-        [Range(1800, 2100, ErrorMessage = "Gecerli bir yil giriniz")]
-        public int? YearTo { get; set; }
+        public string? SortBy { get; set; } = "created";
 
         /// <summary>
-        /// Sýralama: "rating_desc", "rating_asc", "popular", "recent"
+        /// Azalan sýralama mý?
         /// </summary>
-        [RegularExpression("^(rating_desc|rating_asc|popular|recent)$",
-            ErrorMessage = "Gecerli siralama: rating_desc, rating_asc, popular, recent")]
-        public string SortBy { get; set; } = "rating_desc";
+        public bool SortDescending { get; set; } = true;
 
         /// <summary>
-        /// Sayfalama - atlanan kayýt sayýsý
+        /// Sayfa numarasý
         /// </summary>
-        [Range(0, int.MaxValue, ErrorMessage = "Skip 0 veya daha buyuk olmalidir")]
-        public int Skip { get; set; } = 0;
+        [Range(1, int.MaxValue, ErrorMessage = "Sayfa numarasi 1 veya daha buyuk olmalidir")]
+        public int PageNumber { get; set; } = 1;
 
         /// <summary>
-        /// Sayfalama - alýnacak kayýt sayýsý
+        /// Sayfa boyutu
         /// </summary>
-        [Range(1, 100, ErrorMessage = "Take 1-100 arasinda olmalidir")]
-        public int Take { get; set; } = 20;
+        [Range(1, 100, ErrorMessage = "Sayfa boyutu 1-100 arasinda olmalidir")]
+        public int PageSize { get; set; } = 20;
     }
 }

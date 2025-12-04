@@ -41,7 +41,7 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Controllers
              return BadRequest(ApiResponse<object>.FailResponse("ExternalId zorunludur."));
      }
 
-     if (string.IsNullOrWhiteSpace(model.Type))
+      if (string.IsNullOrWhiteSpace(model.Type))
          {
               _logger.LogWarning("EnsureContent: Type is null or empty");
           return BadRequest(ApiResponse<object>.FailResponse("Type zorunludur."));
@@ -549,18 +549,57 @@ var rating = await _context.Ratings.FirstOrDefaultAsync(r => r.UserId == userId 
         var userId = GetCurrentUserId();
            var review = await _context.Reviews.FirstOrDefaultAsync(r => r.UserId == userId && r.ContentId == contentId);
     if (review == null)
-        {
-        _logger.LogInformation($"No review found for User {userId} on Content {contentId}");
+{
+      _logger.LogInformation($"No review found for User {userId} on Content {contentId}");
           return NotFound(ApiResponse<object>.FailResponse("Bu icerik hakkinda henuz yorum yapmadiniz."));
 }
 
-      return Ok(ApiResponse<object>.SuccessResponse(new { id = review.Id, text = review.Text, createdAt = review.CreatedAt, updatedAt = review.UpdatedAt }, "Yorumunuz basariyla getirildi."));
+ return Ok(ApiResponse<object>.SuccessResponse(new { id = review.Id, text = review.Text, createdAt = review.CreatedAt, updatedAt = review.UpdatedAt }, "Yorumunuz basariyla getirildi."));
       }
             catch (Exception ex)
         {
        _logger.LogError(ex, $"GetMyReview error for ContentId {contentId}: {ex.Message}");
     return StatusCode(500, ApiResponse<object>.FailResponse("Yorum getirilirken bir hata olustu.", new List<string> { ex.Message }));
    }
+        }
+
+        /// <summary>
+        /// Ýçeriðin kullanýcýlar tarafýndan verilen ortalama puanýný getir
+        /// GET: api/content/{contentId}/average-rating
+        /// </summary>
+  [HttpGet("{contentId:int}/average-rating")]
+     public async Task<ActionResult<ApiResponse<object>>> GetAverageRating(int contentId)
+  {
+         try
+         {
+                var ratings = await _context.Ratings
+  .Where(r => r.ContentId == contentId)
+  .ToListAsync();
+
+       if (!ratings.Any())
+       {
+   return Ok(ApiResponse<object>.SuccessResponse(
+      new { averageRating = 0.0, ratingsCount = 0 },
+          "Bu icerik henuz puanlanmamis."));
+ }
+
+            var average = ratings.Average(r => r.Score);
+
+  return Ok(ApiResponse<object>.SuccessResponse(
+         new
+          {
+       averageRating = Math.Round(average, 1),
+         ratingsCount = ratings.Count
+  },
+       "Ortalama puan basariyla getirildi."));
+          }
+            catch (Exception ex)
+      {
+      _logger.LogError(ex, $"GetAverageRating error for ContentId {contentId}: {ex.Message}");
+      return StatusCode(500, ApiResponse<object>.FailResponse(
+     "Ortalama puan getirilirken bir hata olustu.",
+   new List<string> { ex.Message }));
+    }
         }
     }
 }
