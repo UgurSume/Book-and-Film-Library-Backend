@@ -140,6 +140,76 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Controllers
             return Ok(ApiResponse.SuccessResponse("İçerik başarıyla listeye eklendi."));
         }
 
+        // YENİ: Status ile listeye ekle (Frontend için)
+        // POST: api/library/add-by-status
+      [HttpPost("add-by-status")]
+    public async Task<ActionResult<ApiResponse>> AddToListByStatus([FromBody] AddToListByStatusRequest model)
+        {
+if (!ModelState.IsValid)
+{
+        return BadRequest(ApiResponse.FailResponse(
+                "Geçersiz veri",
+        ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()));
+     }
+
+            var userId = GetCurrentUserId();
+
+            // Status'a göre liste adını belirle
+   string listName = model.Status.ToLower() switch
+     {
+          "watched" => "Izlediklerim",
+      "to_watch" => "Izlenecekler",
+  "read" => "Okuduklarim",
+       "to_read" => "Okunacaklar",
+      _ => null
+       };
+
+        if (listName == null)
+return BadRequest(ApiResponse.FailResponse("Geçersiz status değeri. Kullanılabilir değerler: watched, to_watch, read, to_read"));
+
+      // Kullanıcının bu listesini bul
+      var list = await _context.UserLists
+     .FirstOrDefaultAsync(l => l.UserId == userId && l.Name == listName && l.IsDefault == true);
+
+   if (list == null)
+            return NotFound(ApiResponse.FailResponse($"{listName} listesi bulunamadı. Lütfen tekrar giriş yapın."));
+
+        var content = await _context.Contents.FindAsync(model.ContentId);
+    if (content == null)
+       return NotFound(ApiResponse.FailResponse("İçerik bulunamadı."));
+
+  // Aynı içerik önceden eklenmiş mi?
+var exists = await _context.UserListItems
+            .AnyAsync(i => i.UserListId == list.Id && i.ContentId == model.ContentId);
+
+       if (exists)
+        return BadRequest(ApiResponse.FailResponse("Bu içerik zaten listede mevcut."));
+
+   var item = new UserListItem
+  {
+          UserListId = list.Id,
+        ContentId = model.ContentId
+       };
+
+            _context.UserListItems.Add(item);
+          await _context.SaveChangesAsync();
+
+    // Aktivite kaydı
+  var activity = new Activity
+      {
+        UserId = userId,
+       ContentId = model.ContentId,
+ ActivityType = "add_to_list",
+       ListId = list.Id,
+    CreatedAt = DateTime.UtcNow
+   };
+
+         _context.Activities.Add(activity);
+        await _context.SaveChangesAsync();
+
+      return Ok(ApiResponse.SuccessResponse($"İçerik {listName} listesine başarıyla eklendi."));
+        }
+
         // 3) Listeden içerik sil
         // DELETE: api/library/remove
         [HttpDelete("remove")]
