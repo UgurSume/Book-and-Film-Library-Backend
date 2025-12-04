@@ -29,28 +29,39 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Controllers
        var currentUserId = GetCurrentUserId();
 
       var user = await _context.Users.FindAsync(userId);
-if (user == null)
-       return NotFound(ApiResponse<UserProfileDto>.FailResponse("Kullanýcý bulunamadý."));
+      if (user == null)
+   return NotFound(ApiResponse<UserProfileDto>.FailResponse("Kullanýcý bulunamadý."));
+
+      // Kullanýcý istatistikleri
+      var totalRatings = await _context.Ratings.CountAsync(r => r.UserId == userId);
+    var totalReviews = await _context.Reviews.CountAsync(r => r.UserId == userId);
+      var totalLists = await _context.UserLists.CountAsync(ul => ul.UserId == userId && !ul.IsDefault);
+      var totalActivities = await _context.Activities.CountAsync(a => a.UserId == userId);
 
       // Giriþ yapan kullanýcý bu profili takip ediyor mu?
-   var isFollowing = await _context.UserFollowers
+ var isFollowing = await _context.UserFollowers
  .AnyAsync(uf => uf.FollowerId == currentUserId && uf.FollowingId == userId);
 
     var dto = new UserProfileDto
-       {
-Id = user.Id,
-  UserName = user.UserName,
-       Email = user.Email,
-     AvatarUrl = user.AvatarUrl,
-  Biography = user.Biography,
+  {
+            Id = user.Id,
+    UserName = user.UserName,
+      Email = user.Email,
+       AvatarUrl = user.AvatarUrl,
+      Biography = user.Biography,
  FollowersCount = user.FollowersCount,
-       FollowingCount = user.FollowingCount,
-  CreatedAt = user.CreatedAt,
-      IsFollowing = isFollowing,
-       IsOwnProfile = currentUserId == userId
+            FollowingCount = user.FollowingCount,
+            CreatedAt = user.CreatedAt,
+  IsFollowing = isFollowing,
+          IsOwnProfile = currentUserId == userId,
+      // Ýstatistikler
+            TotalRatings = totalRatings,
+     TotalReviews = totalReviews,
+  TotalLists = totalLists,
+            TotalActivities = totalActivities
   };
 
-return Ok(ApiResponse<UserProfileDto>.SuccessResponse(dto, "Profil baþarýyla getirildi."));
+      return Ok(ApiResponse<UserProfileDto>.SuccessResponse(dto, "Profil baþarýyla getirildi."));
         }
 
    /// <summary>
