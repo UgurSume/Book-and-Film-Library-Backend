@@ -1,9 +1,10 @@
-# ?? Sosyal Kütüphane Platformu
+#  Sosyal Kütüphane Platformu
+# Sosyal Kütüphane Platformu
 
-## ?? Proje Hakkýnda
+## Proje Hakkýnda
 Film ve kitap paylaþým platformu. Kullanýcýlar içerikleri puanlayabilir, yorum yapabilir ve listelere ekleyebilir.
 
-## ?? Teknolojiler
+## Teknolojiler
 - **.NET 8** - Backend
 - **Entity Framework Core 8** - ORM
 - **SQL Server** - Veritabaný
@@ -11,7 +12,7 @@ Film ve kitap paylaþým platformu. Kullanýcýlar içerikleri puanlayabilir, yorum y
 - **TMDb API** - Film verileri
 - **Google Books API** - Kitap verileri
 
-## ?? Kurulum
+## Kurulum
 
 ### 1. Repository'yi Klonla
 ```bash
@@ -50,30 +51,55 @@ dotnet run
 
 Swagger: `https://localhost:7297/swagger`
 
-## ?? API Endpoints
+## API Endpoints
 
 ### Authentication
-- `POST /api/Auth/register` - Kayýt ol
-- `POST /api/Auth/login` - Giriþ yap
+- `POST /api/Auth/kayit` - Kayýt ol
+- `POST /api/Auth/giris` - Giriþ yap
+- `GET /api/Auth/me` - Mevcut kullanýcý
 
 ### Content
 - `POST /api/Content/ensure` - Ýçerik ekle
 - `POST /api/Content/rate` - Puan ver
 - `POST /api/Content/review` - Yorum yaz
 - `GET /api/Content/{id}` - Ýçerik detayý
+- `GET /api/Content/{id}/average-rating` - Ortalama kullanýcý puaný
+- `GET /api/Content/external/{externalId}/average-rating` - ExternalId ile puan
 
 ### Library
 - `GET /api/Library/my-lists` - Listelerim
 - `POST /api/Library/add` - Listeye ekle
+- `POST /api/Library/add-by-status` - Duruma göre ekle (watched/to_watch/read/to_read)
+- `DELETE /api/Library/remove` - Listeden çýkar
 
 ### User
 - `GET /api/User/my-profile` - Profilim
+- `GET /api/User/profile/{id}` - Kullanýcý profili
+- `PUT /api/User/update-profile` - Profil güncelle
+- `GET /api/User/search?query=` - Kullanýcý ara
+- `GET /api/User/my-ratings` - Verdiðim puanlar
 - `POST /api/User/follow/{userId}` - Takip et
+- `DELETE /api/User/unfollow/{userId}` - Takibi býrak
+
+### Search
+- `GET /api/Search/movies?query=` - Film ara
+- `GET /api/Search/books?query=` - Kitap ara
+- `GET /api/Search/all?query=` - Hepsinde ara
+- `POST /api/Search/filter` - Geliþmiþ filtreleme
+
+### Discover
+- `GET /api/Discover/top-rated` - En yüksek puanlýlar
+- `GET /api/Discover/popular` - En popülerler
+- `GET /api/Discover/trending` - Trendler
+- `GET /api/Discover/recent` - Yeni eklenenler
+- `GET /api/Discover/recommended` - Önerilen içerikler
 
 ### Feed
 - `GET /api/Feed` - Ana akýþ
+- `GET /api/Feed/my` - Kendi aktivitelerim
+- `GET /api/Feed/explore` - Tüm platform
 
-## ?? Yapýlandýrma
+---
 
 ### CORS
 Frontend için CORS yapýlandýrmasý `Program.cs`'de tanýmlýdýr:
@@ -93,7 +119,7 @@ builder.Services.AddCors(options =>
 ### JWT
 Token süresi: 1440 dakika (24 saat)
 
-## ?? Modeller
+## Modeller
 
 ### User
 - UserName, Email, PasswordHash
@@ -112,10 +138,10 @@ Token süresi: 1440 dakika (24 saat)
 - ActivityType (rating/review/add_to_list)
 - Score, Text, ListId
 
-## ?? Test
+## Test
 
 ### Swagger ile Test
-1. `/api/Auth/login` ile token al
+1. `/api/Auth/giris` ile token al
 2. Swagger'da "Authorize" butonuna týkla
 3. `Bearer {token}` formatýnda yapýþtýr
 4. Endpoint'leri test et
@@ -132,34 +158,17 @@ SELECT * FROM Contents;
 SELECT * FROM Users;
 ```
 
-## ?? Dokümantasyon
 
-Detaylý dokümantasyon için `Docs/` klasörüne bakýn.
 
-## ?? Katkýda Bulunma
 
-1. Fork edin
-2. Feature branch oluþturun (`git checkout -b feature/amazing-feature`)
-3. Commit edin (`git commit -m 'Add some amazing feature'`)
-4. Push edin (`git push origin feature/amazing-feature`)
-5. Pull Request açýn
 
-## ?? Lisans
 
-Bu proje MIT lisansý altýndadýr.
 
-## ?? Geliþtirici
 
-**Uður Süme**
-- GitHub: [@UgurSume](https://github.com/UgurSume)
 
-## ?? Ýletiþim
 
-Sorularýnýz için:
-- GitHub Issues: [Issues](https://github.com/UgurSume/SOSYAL_KUTUPHANE_PLATFORMU/issues)
-- Email: [ugursume@example.com](mailto:ugursume@example.com)
+
 
 ---
 
-**Son Güncelleme:** 2024-12-04  
-**Versiyon:** 1.0.0
+
