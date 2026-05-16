@@ -47,12 +47,13 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
       "http://localhost:3000",
-      "http://localhost:3001",  // Frontend port
+      "http://localhost:3001",
+      "http://localhost:3002",  // ? Frontend port eklendi
       "http://localhost:5173",
       "http://localhost:4200",
-      "http://localhost:8080"
-    )
-        .AllowAnyMethod()
+    "http://localhost:8080"
+ )
+ .AllowAnyMethod()
         .AllowAnyHeader()
         .AllowCredentials()
         .WithExposedHeaders("*"); // Tüm header'larý expose et

@@ -580,7 +580,7 @@ var rating = await _context.Ratings.FirstOrDefaultAsync(r => r.UserId == userId 
        {
    return Ok(ApiResponse<object>.SuccessResponse(
       new { averageRating = 0.0, ratingsCount = 0 },
-          "Bu icerik henuz puanlanmamis."));
+   "Bu icerik henuz puanlanmamis."));
  }
 
             var average = ratings.Average(r => r.Score);
@@ -592,14 +592,70 @@ var rating = await _context.Ratings.FirstOrDefaultAsync(r => r.UserId == userId 
          ratingsCount = ratings.Count
   },
        "Ortalama puan basariyla getirildi."));
-          }
-            catch (Exception ex)
+      }
+      catch (Exception ex)
       {
       _logger.LogError(ex, $"GetAverageRating error for ContentId {contentId}: {ex.Message}");
-      return StatusCode(500, ApiResponse<object>.FailResponse(
+    return StatusCode(500, ApiResponse<object>.FailResponse(
      "Ortalama puan getirilirken bir hata olustu.",
    new List<string> { ex.Message }));
     }
         }
-    }
+
+        /// <summary>
+        /// ExternalId'ye göre kullanýcýlarýn verdiði ortalama puaný getir
+        /// GET: api/content/external/{externalId}/average-rating
+        /// </summary>
+     [HttpGet("external/{externalId}/average-rating")]
+     public async Task<ActionResult<ApiResponse<object>>> GetAverageRatingByExternalId(string externalId)
+        {
+            try
+   {
+    _logger.LogInformation($"GetAverageRatingByExternalId called for ExternalId: {externalId}");
+
+        // ExternalId'ye göre content bul
+        var content = await _context.Contents
+        .FirstOrDefaultAsync(c => c.ExternalId == externalId);
+
+                if (content == null)
+      {
+             _logger.LogInformation($"Content not found for ExternalId: {externalId}");
+         return Ok(ApiResponse<object>.SuccessResponse(
+      new { averageRating = 0.0, ratingsCount = 0, contentExists = false },
+   "Bu icerik henuz platformda yok."));
+          }
+
+    // Bu content için tüm puanlarý getir
+     var ratings = await _context.Ratings
+         .Where(r => r.ContentId == content.Id)
+           .ToListAsync();
+
+    if (!ratings.Any())
+      {
+   return Ok(ApiResponse<object>.SuccessResponse(
+    new { averageRating = 0.0, ratingsCount = 0, contentExists = true },
+        "Bu icerik henuz puanlanmamis."));
+      }
+
+            var average = ratings.Average(r => r.Score);
+
+         return Ok(ApiResponse<object>.SuccessResponse(
+      new
+             {
+      averageRating = Math.Round(average, 1),
+          ratingsCount = ratings.Count,
+        contentExists = true,
+  contentId = content.Id
+          },
+   "Ortalama puan basariyla getirildi."));
+   }
+            catch (Exception ex)
+     {
+                _logger.LogError(ex, $"GetAverageRatingByExternalId error for ExternalId {externalId}: {ex.Message}");
+   return StatusCode(500, ApiResponse<object>.FailResponse(
+              "Ortalama puan getirilirken bir hata olustu.",
+    new List<string> { ex.Message }));
+      }
+   }
+  }
 }

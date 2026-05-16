@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SOSYAL_KUTUPHANE_PLATFORMU.Data;
 using SOSYAL_KUTUPHANE_PLATFORMU.Dtos;
 using SOSYAL_KUTUPHANE_PLATFORMU.Models;
@@ -13,11 +14,13 @@ namespace SOSYAL_KUTUPHANE_PLATFORMU.Controllers
     public class UserController : BaseController
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<UserController> _logger;
 
-   public UserController(ApplicationDbContext context)
-        {
+   public UserController(ApplicationDbContext context, ILogger<UserController> logger)
+  {
  _context = context;
-        }
+            _logger = logger;
+}
 
         /// <summary>
      /// Kullanýcý profilini getir
@@ -76,47 +79,92 @@ FollowingCount = user.FollowingCount,
    }
 
         /// <summary>
-        /// Kullanýcý ara
+   /// Kullanýcý ara
     /// GET: api/user/search?query=ahmet
-        /// </summary>
+ /// </summary>
       [HttpGet("search")]
-        [Authorize]
-        public async Task<ActionResult<ApiResponse<List<FollowUserDto>>>> SearchUsers([FromQuery] string query)
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<List<FollowUserDto>>>> SearchUsers([FromQuery] string query)
   {
       if (string.IsNullOrWhiteSpace(query))
-      return BadRequest(ApiResponse<List<FollowUserDto>>.FailResponse("Arama sorgusu boþ olamaz."));
+  return BadRequest(ApiResponse<List<FollowUserDto>>.FailResponse("Arama sorgusu boþ olamaz."));
 
             var currentUserId = GetCurrentUserId();
 
-            // Kullanýcýlarý ara
+         // Kullanýcýlarý ara
        var users = await _context.Users
-      .Where(u => u.UserName.Contains(query) && u.Id != currentUserId) // Kendini hariç tut
+  .Where(u => u.UserName.Contains(query) && u.Id != currentUserId) // Kendini hariç tut
    .Take(20)
        .ToListAsync();
 
-            // Giriþ yapan kullanýcýnýn takip ettiði kiþileri al
+     // Giriþ yapan kullanýcýnýn takip ettiði kiþileri al
       var currentUserFollowingIds = await _context.UserFollowers
            .Where(uf => uf.FollowerId == currentUserId)
      .Select(uf => uf.FollowingId)
     .ToListAsync();
 
-         var result = users.Select(u => new FollowUserDto
+  var result = users.Select(u => new FollowUserDto
          {
      Id = u.Id,
       UserName = u.UserName,
           AvatarUrl = u.AvatarUrl,
      Biography = u.Biography,
   FollowersCount = u.FollowersCount,
-     FollowingCount = u.FollowingCount,
+  FollowingCount = u.FollowingCount,
           IsFollowing = currentUserFollowingIds.Contains(u.Id)
-      }).ToList();
+    }).ToList();
 
-    return Ok(ApiResponse<List<FollowUserDto>>.SuccessResponse(
-        result,
+ return Ok(ApiResponse<List<FollowUserDto>>.SuccessResponse(
+ result,
   $"{result.Count} kullanýcý bulundu."));
         }
 
-    /// <summary>
+        /// <summary>
+        /// Kullanýcýnýn verdiði tüm puanlarý getir
+        /// GET: api/user/my-ratings
+        /// </summary>
+ [HttpGet("my-ratings")]
+      [Authorize]
+        public async Task<ActionResult<ApiResponse<List<object>>>> GetMyRatings()
+    {
+  try
+   {
+   var userId = GetCurrentUserId();
+      
+          var ratings = await _context.Ratings
+         .Where(r => r.UserId == userId)
+     .Include(r => r.Content)
+        .OrderByDescending(r => r.CreatedAt)
+                    .ToListAsync();
+
+         var result = ratings.Select(r => new
+         {
+           id = r.Id,
+      contentId = r.ContentId,
+ contentTitle = r.Content.Title,
+           contentCoverUrl = r.Content.CoverUrl,
+  contentType = r.Content.Type,
+             contentExternalId = r.Content.ExternalId,
+   contentYear = r.Content.Year,
+           score = r.Score,
+            createdAt = r.CreatedAt,
+        updatedAt = r.UpdatedAt
+    }).ToList();
+       
+       return Ok(ApiResponse<List<object>>.SuccessResponse(
+          result.Cast<object>().ToList(),
+           $"{result.Count} puan bulundu."));
+      }
+         catch (Exception ex)
+      {
+   _logger.LogError(ex, $"GetMyRatings error: {ex.Message}");
+     return StatusCode(500, ApiResponse<List<object>>.FailResponse(
+     "Puanlar getirilirken bir hata oluþtu.",
+       new List<string> { ex.Message }));
+    }
+        }
+
+  /// <summary>
         /// Profil güncelleme
  /// PUT: api/user/update-profile
       /// </summary>
